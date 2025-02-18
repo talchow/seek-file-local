@@ -6,24 +6,36 @@
 // 用户可以打开文件,读取文件,写入文件,关闭文件
 // 编辑器可以打开文件,读取文件,写入文件,关闭文件
 
-use crate::command::{ Command,get, create, delete, edit};
+use crate::command::Command;
+use crate::error::AppError;
 use axum::extract::Path;
+use axum::response::IntoResponse;
+use tokio::fs::{read_to_string, remove_file, write};
 
 #[axum::debug_handler]
 
-pub async fn handler(Path((cmd, _path)): Path<(Command, String)>) {
+pub async fn handler(Path((cmd, _ )): Path<(Command, String)>) ->Result<impl IntoResponse, AppError> {
     match cmd {
-        Command::Get { path: get_path } => {
-            let _ = get(get_path).await;
+        Command::Get { path } => {
+             let content = read_to_string(path).await?;
+             println!("{}", content);
+             Ok("Get operation succeed")
         }
-        Command::Create { path: create_path, content } => {
-            let _ = create(create_path, content).await;
+        Command::Create { path , content } => {
+             write(path, content).await?;
+             println!("Create operation succeed");
+             Ok("Create operation succeed")
         }
-        Command::Delete { path: delete_path } => {
-            let _ = delete(delete_path).await;
+        Command::Delete { path } => {
+              remove_file(path).await?;
+              println!("Delete operation succeed");
+              Ok("Delete operation succeed")
         }
-        Command::Edit { path: edit_path, start, end, content } => {
-            let _ = edit(edit_path, start, end, content).await;
+        Command::Edit { path , start, end, content } => {
+              let mut file_content = read_to_string(path.clone()).await?;
+              file_content.replace_range(start..end, &content);
+                write(path, file_content).await?;
+              Ok("Edit operation succeed")
         }
     }
 }
