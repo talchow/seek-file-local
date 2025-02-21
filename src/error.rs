@@ -1,30 +1,36 @@
-use axum::response::{IntoResponse, Response};
-use http::StatusCode;
+use axum::response::IntoResponse;
+use thiserror::Error;
+#[derive(Debug, Error)]
+pub enum AppError  {
+    #[error("File I/O error: {0}")]
+    FileIO(#[from] std::io::Error),
 
-#[derive(Debug)]
-pub enum AppError {
-    FileIO(std::io::Error),
-    InvalidParams(String),
+    #[error("Invalid parameters: {0}")]
+    InvalidParameters(String),
+
+    #[error("File not found: {0}")]
+    FileNotFound(String),
+
+    #[error("Index out of bounds: {0}")]
+    IndexError(String),
+
+    #[error("Security violaation: {0}")]
+    SecurityViolation(String),
+
+    #[error("File too large (>1MB))")]
+    FileSizeExceeded,
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        match self {
-            Self::FileIO(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("File operation failed: {}", e),
-            ),
-            Self::InvalidParams(msg) => (
-                StatusCode::BAD_REQUEST,
-                format!("Invalid parameters: {}", msg),
-            ),
-        }
-        .into_response()
+impl From<std::num::TryFromIntError> for AppError {
+    fn from(error: std::num::TryFromIntError) -> Self {
+        Self::IndexError(error.to_string())
     }
-}
+} 
 
-impl From<std::io::Error> for AppError {
-    fn from(e: std::io::Error) -> Self {
-        Self::FileIO(e)
+impl IntoResponse for AppError  {
+    fn into_response(self) -> axum::response::Response {
+        let body = format!("Error: {}", self);
+        body.into_response() // Convert the error message to a response body
     }
+    
 }

@@ -1,6 +1,5 @@
 use serde::Deserialize;
 
-
 #[derive(Deserialize)]
 pub enum Command {
     Get {
@@ -20,5 +19,3 @@ pub enum Command {
         content: String,
     },
 }
-
-

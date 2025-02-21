@@ -8,14 +8,15 @@ use crate::command::Command;
 use crate::error::AppError;
 use axum::extract::Path;
 use axum::response::IntoResponse;
+use serde::Deserialize;
 use tokio::fs::{read_to_string, remove_file, write};
 
 #[axum::debug_handler]
 
 pub async fn handler(
-    Path((cmd,_)): Path<(Command, String)>,
+    Path(params): Path< RequestParams>
 ) -> Result<impl IntoResponse, AppError> {
-    match cmd {
+    match params.command {
        
         Command::Get { path } => {
             let content = read_to_string(path).await?;
@@ -45,3 +46,10 @@ pub async fn handler(
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct RequestParams {
+  command:Command,
+  path:String,
+}
+
